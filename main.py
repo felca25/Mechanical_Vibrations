@@ -113,6 +113,7 @@ class AnaliticalSolution(Free_1DoF_Vibrational_System):
             A = 1 #amplitude
             phi = 0
 
+
         
 
 

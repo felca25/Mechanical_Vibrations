@@ -1,8 +1,9 @@
 import numpy as np 
-from math import cos, sin, pi, e
-from sympy import Symbol, lambdify
+from math import pi, e
+from sympy import Symbol, lambdify, exp, sin, cos, sinh, cosh, diff, sqrt,atan
 from scipy.integrate import odeint
 from matplotlib import pyplot as plt
+
 
 class Free_1DoF_Vibrational_System:
     mass = 50
@@ -106,33 +107,47 @@ class NumericVibrationalSystem(Free_1DoF_Vibrational_System):
         plt.plot(self.time, self.NumericSolution()[:,1])
         plt.xlabel('Time(s)')
         plt.ylabel('Velocidade(m/s)')
+        plt.suptitle('Numerical Response')
         # plt.show()
 
 class AnaliticalSystem(Free_1DoF_Vibrational_System):
+    t = Symbol('t')
 
     def __init__(self):
         super().__init__()
         self.omega_d = self.omega_n * np.sqrt(1 - (self.qsi)**2)
 
-    def VibrationalSystem(self):
+    def iterator(self, times, function):
+        y_values = []
 
-        t = Symbol('t')
+        for time in times:
+            y_values.append(function(time))
+
+        return(y_values)
+
+
+    def VibrationalSystem(self):
+        t = self.t
+        self.label = "qsi = " + str(self.qsi)
+
         #Free Vibrational System
         if self.qsi == 0:
 
-            A = np.sqrt((self.initial_position ** 2) + ((self.initial_velocity / self.omega_n)**2)) #amplitude
-            phi = np.arctan(self.initial_velocity/(self.initial_position * self.omega_n))
+            A = sqrt((self.initial_position ** 2) + ((self.initial_velocity / self.omega_n)**2)) #amplitude
+            phi = atan(self.initial_velocity/(self.initial_position * self.omega_n))
             
             #analitical solution
             self.u = A * cos(self.omega_n * t - phi)
 
+
             u_func = lambdify(t, self.u)
+            self.title = 'Free Vibrational System (qsi = 0)'
 
             return u_func
         #Underdamped Vibrational System
-        elif 0 < self.qsi < 1 and self.qsi > 0:
+        elif 0 < self.qsi < 1:
 
-            exponential_part = e ** (- self.qsi * self.omega_n * t)
+            exponential_part = exp(- self.qsi * self.omega_n * t)
             c1 = self.initial_position
             c2 = (self.initial_velocity + (self.initial_position * self.qsi * self.omega_n)) / self.omega_d
             
@@ -147,7 +162,7 @@ class AnaliticalSystem(Free_1DoF_Vibrational_System):
 
             A1 = self.initial_position
             A2 = self.initial_velocity + (A1 * self.omega_n)
-            exponential_part = np.exp(- self.omega_n * t)
+            exponential_part = exp(- self.omega_n * t)
 
             self.u = exponential_part * (A1 + A2 * t)
 
@@ -159,27 +174,45 @@ class AnaliticalSystem(Free_1DoF_Vibrational_System):
 
             omega_d = self.omega_n * np.sqrt(self.qsi ** 2 - 1)
 
-            exponential_part = np.exp(- self.qsi * self.omega_n * t)
+            exponential_part = exp(- self.qsi * self.omega_n * t)
             C1 = self.initial_position
             C2 = (self.initial_velocity + (C1 * self.qsi * self.omega_n))/(omega_d)
 
-            self.u = exponential_part * (C1 * np.cosh(omega_d * t) + C2 * np.sinh(omega_d * t))
+            self.u = exponential_part * (C1 * cosh(omega_d * t) + C2 * sinh(omega_d * t))
 
             u_func = lambdify(t, self.u)
 
             return u_func
         else:
             pass
+    
+    def diferential(self, variable, expression):
+
+        expression_p = diff(expression)
+
+        function = lambdify(variable, expression_p)
+
+        return function
+
+
+
+
     def plotPositionGraphs(self):
+
+        y_values = self.iterator(self.time, self.VibrationalSystem())
+        yp_values = self.iterator(self.time, self.diferential(self.t, self.u))
+
         plt.figure()
         plt.subplot(211)
-        plt.plot(self.time, self.VibrationalSystem())
+        plt.plot(self.time, y_values)
         plt.xlabel('Time(s)')
         plt.ylabel('Deslocamento(m)')
         plt.subplot(212)
-        plt.plot(self.time, self.VibrationalSystem())
+        plt.plot(self.time, yp_values)
         plt.xlabel('Time(s)')
         plt.ylabel('Velocidade(m/s)')
+        plt.suptitle('Analitical Response')
+
 
 
 # ----- Portugues -------
@@ -197,12 +230,21 @@ class AnaliticalSystem(Free_1DoF_Vibrational_System):
 
 
 
-System = AnaliticalSystem()
-System.setQsi(0.1)
-System.plotPositionGraphs()
+# System =  NumericVibrationalSystem()
+# System.setQsi(0.1)
+# System.plotPositionGraphs()
 
-systemUndamped = NumericVibrationalSystem()
-systemUndamped.setQsi(0)
+systemUndamped = AnaliticalSystem()
+systemUndamped.setQsi(0.1)
 systemUndamped.plotPositionGraphs()
+
+# systemUndamped.setQsi(0)
+# systemUndamped.plotPositionGraphs()
+
+# systemUndamped.setQsi(1)
+# systemUndamped.plotPositionGraphs()
+
+# systemUndamped.setQsi(1.5)
+# systemUndamped.plotPositionGraphs()
 
 plt.show()
